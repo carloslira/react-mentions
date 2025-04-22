@@ -105,6 +105,12 @@ const MentionsInput = <Multiline extends boolean>({
   const [selectionStart, setSelectionStart] = useState<number | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
 
+  const [setSelectionAfterMentionChange, setSetSelectionAfterMentionChange] =
+    useState(false);
+
+  const [setSelectionAfterHandlePaste, setSetSelectionAfterHandlePaste] =
+    useState(false);
+
   const { styles, attributes } = usePopper(caretRef, popperRef, {
     placement: 'bottom-start',
   });
@@ -113,17 +119,34 @@ const MentionsInput = <Multiline extends boolean>({
     suggestionsOverlayIdRef.current = Math.random().toString(16).substring(2);
   }, []);
 
-  useEffect(() => {
-    if (
-      !inputRef.current ||
-      (inputRef.current.selectionStart === selectionStart &&
-        inputRef.current.selectionEnd === selectionEnd)
-    ) {
+  const setSelectionRange = (
+    newSelectionStat: number | null,
+    newSelectionEnd: number | null,
+  ) => {
+    if (newSelectionStat === null || newSelectionEnd === null) {
       return;
     }
 
-    inputRef.current.setSelectionRange(selectionStart, selectionEnd);
-  }, [selectionStart, selectionEnd]);
+    inputRef.current?.setSelectionRange(newSelectionStat, newSelectionEnd);
+  };
+
+  useEffect(() => {
+    if (!setSelectionAfterMentionChange) {
+      return;
+    }
+
+    setSetSelectionAfterMentionChange(false);
+    setSelectionRange(selectionStart, selectionEnd);
+  }, [selectionStart, selectionEnd, setSelectionAfterMentionChange]);
+
+  useEffect(() => {
+    if (!setSelectionAfterHandlePaste) {
+      return;
+    }
+
+    setSetSelectionAfterHandlePaste(false);
+    setSelectionRange(selectionStart, selectionEnd);
+  }, [selectionStart, selectionEnd, setSelectionAfterHandlePaste]);
 
   const saveSelectionToClipboard = useCallback(
     (event: ClipboardEvent<MentionsInputElement<Multiline>>) => {
@@ -255,6 +278,8 @@ const MentionsInput = <Multiline extends boolean>({
 
     setSelectionStart(nextPos);
     setSelectionEnd(nextPos);
+
+    setSetSelectionAfterHandlePaste(true);
   };
 
   const updateHighlighterScroll = () => {
@@ -439,6 +464,8 @@ const MentionsInput = <Multiline extends boolean>({
     let selectionStartAfter = event.target.selectionStart;
     let selectionEndAfter = event.target.selectionEnd;
 
+    let setSelectionAfterMentionChangeAfter = false;
+
     // Adjust selection range in case a mention will be deleted by the characters outside of the
     // selection range that are automatically deleted
     const startOfMention = findStartOfMentionInPlainText(
@@ -456,10 +483,14 @@ const MentionsInput = <Multiline extends boolean>({
       const { data } = event.nativeEvent as InputEvent;
       selectionStartAfter = startOfMention + (data?.length ?? 0);
       selectionEndAfter = selectionStart;
+
+      setSelectionAfterMentionChangeAfter = true;
     }
 
     setSelectionStart(selectionStartAfter);
     setSelectionEnd(selectionEndAfter);
+
+    setSetSelectionAfterMentionChange(setSelectionAfterMentionChangeAfter);
 
     const mentions = getMentions(newValue, dataSources);
 
@@ -561,6 +592,8 @@ const MentionsInput = <Multiline extends boolean>({
     const newCaretPosition = querySequenceStart + displayValue.length;
     setSelectionStart(newCaretPosition);
     setSelectionEnd(newCaretPosition);
+
+    setSetSelectionAfterMentionChange(true);
 
     const newValue = spliceString(value, start, end, insert);
     const mentions = getMentions(newValue, dataSources);

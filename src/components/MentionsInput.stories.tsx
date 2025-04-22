@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
-import { HTMLProps, useState } from 'react';
+import type { HTMLProps } from 'react';
+import { useState, forwardRef } from 'react';
+
+import renderSuggestionContent from '../utils/render-suggestion-content';
 
 import type { SuggestionProps } from './Suggestion';
 
@@ -87,6 +90,12 @@ export const DisplayTransform: Story = {
   },
 };
 
+const Input = forwardRef<HTMLInputElement, HTMLProps<HTMLInputElement>>(
+  ({ style, ...rest }, ref) => (
+    <input ref={ref} {...rest} style={{ ...style }} />
+  ),
+);
+
 const Suggestions = ({ style, ...rest }: HTMLProps<HTMLDivElement>) => (
   <div
     {...rest}
@@ -94,27 +103,39 @@ const Suggestions = ({ style, ...rest }: HTMLProps<HTMLDivElement>) => (
   />
 );
 
-const SuggestionsList = ({ style, ...rest }: HTMLProps<HTMLUListElement>) => (
-  <ul {...rest} style={{ ...style, backgroundColor: 'blue' }} />
-);
+const SuggestionsList = forwardRef<
+  HTMLUListElement,
+  HTMLProps<HTMLUListElement>
+>(({ style, ...rest }, ref) => (
+  <ul ref={ref} {...rest} style={{ ...style, backgroundColor: 'blue' }} />
+));
 
-const Suggestion = ({ index, style, suggestion, ...rest }: SuggestionProps) => (
+const Suggestion = ({
+  index,
+  query,
+  focused,
+  suggestion,
+  ignoreAccents,
+  ...rest
+}: SuggestionProps) => (
   <li
     {...rest}
     style={{
-      ...style,
       color: 'white',
+      cursor: 'pointer',
       marginTop: index === 0 || index === starWarsDataSource.length ? 0 : 4,
-      backgroundColor: 'green',
+      backgroundColor: focused ? 'yellow' : 'green',
     }}
   >
-    {suggestion.display ?? suggestion.id}
+    {renderSuggestionContent(suggestion, query, ignoreAccents)}
   </li>
 );
 
 export const CustomComponents: Story = {
   render: Template,
   args: {
+    // @ts-expect-error This should work outside this scope because of the generic aspect of MentionsInput.
+    InputComponent: Input,
     SuggestionComponent: Suggestion,
     SuggestionsComponent: Suggestions,
     SuggestionsListComponent: SuggestionsList,

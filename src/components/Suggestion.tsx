@@ -2,7 +2,7 @@ import type { HTMLProps } from 'react';
 
 import type { SuggestionData } from '../types';
 
-import getSubstringIndex from '../utils/get-substring-index';
+import renderSuggestionContent from '../utils/render-suggestion-content';
 
 export type SuggestionProps = HTMLProps<HTMLLIElement> & {
   index: number;
@@ -18,28 +18,10 @@ const Suggestion = ({
   suggestion,
   ignoreAccents,
   ...rest
-}: SuggestionProps) => {
-  const renderContent = () => {
-    const display = suggestion.display ?? suggestion.id;
-    const substrIndex = getSubstringIndex(display, query, ignoreAccents);
-    if (substrIndex === -1) {
-      return <span>{display}</span>;
-    }
-
-    return (
-      <span>
-        {display.substring(0, substrIndex)}
-        <b>{display.substring(substrIndex, substrIndex + query.length)}</b>
-        {display.substring(substrIndex + query.length)}
-      </span>
-    );
-  };
-
-  return (
-    <li role="option" aria-selected={focused} {...rest}>
-      {renderContent()}
-    </li>
-  );
-};
+}: SuggestionProps) => (
+  <li role="option" aria-selected={focused} {...rest}>
+    {renderSuggestionContent(suggestion, query, ignoreAccents)}
+  </li>
+);
 
 export default Suggestion;
