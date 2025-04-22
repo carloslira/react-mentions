@@ -14,7 +14,9 @@
     "preview": "vite preview",
     "prepare": "husky",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "predeploy": "pnpm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
@@ -48,6 +50,7 @@
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.18",
     "eslint-plugin-storybook": "^0.12.0",
+    "gh-pages": "^6.3.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.4.1",
     "playwright": "^1.51.1",
@@ -62,6 +65,7 @@
   },
   "author": "Carlos Lira",
   "license": "MIT",
+  "homepage": "https://carloslira.github.io/react-mentions",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/carloslira/react-mentions.git"
