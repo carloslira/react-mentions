@@ -16,3 +16,9 @@ lint-staged:
 
 storybook:
 	pnpm storybook;
+
+build-storybook:
+	pnpm build-storybook;
+
+deploy:
+	pnpm run deploy;
