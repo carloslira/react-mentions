@@ -114,8 +114,6 @@ const SuggestionsOverlay = forwardRef<HTMLDivElement, SuggestionsOverlayProps>(
           ref={listRef}
           role="listbox"
           style={{
-            margin: 0,
-            padding: 0,
             overflow: 'auto',
             listStyleType: 'none',
           }}
