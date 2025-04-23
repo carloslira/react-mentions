@@ -15,8 +15,8 @@
     "prepare": "husky",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "predeploy": "pnpm run build-storybook",
-    "deploy": "gh-pages -d storybook-static"
+    "predeploy": "cd demo && pnpm run build",
+    "deploy": "gh-pages -d demo/dist"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",

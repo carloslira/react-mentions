@@ -1,5 +1,7 @@
 import type { Ref, ReactNode, CSSProperties } from 'react';
-import { forwardRef } from 'react';
+import { forwardRef, useMemo } from 'react';
+
+import { createPortal } from 'react-dom';
 
 import type { SuggestionDataSource } from '../types';
 
@@ -12,10 +14,49 @@ import iterateMentionsMarkup from '../utils/iterate-mentions-markup';
 
 import Mention from './Mention';
 
+const getInputRect = (input: HTMLInputElement | HTMLTextAreaElement | null) => {
+  const rect = { x: 0, y: 0, width: 0, height: 0 };
+  if (!input) {
+    return rect;
+  }
+
+  const computedStyle = getComputedStyle(input);
+
+  rect.width = input.clientWidth;
+  rect.width -= parseFloat(computedStyle.paddingLeft);
+  rect.width -= parseFloat(computedStyle.paddingRight);
+
+  rect.height = input.clientHeight;
+  rect.height -= parseFloat(computedStyle.paddingTop);
+  rect.height -= parseFloat(computedStyle.paddingBottom);
+
+  rect.x = input.offsetLeft;
+  rect.x += parseFloat(computedStyle.paddingLeft);
+  rect.x += parseFloat(computedStyle.borderLeft);
+
+  rect.y = input.offsetTop;
+  rect.y += parseFloat(computedStyle.paddingTop);
+  rect.y += parseFloat(computedStyle.borderTop);
+
+  return rect;
+};
+
+const getInputContainerEl = (
+  input: HTMLInputElement | HTMLTextAreaElement | null,
+) => {
+  let containerEl = input?.parentElement;
+  if (!containerEl) {
+    containerEl = document.body;
+  }
+
+  return containerEl;
+};
+
 type HighlighterProps = {
   value: string;
-  style: CSSProperties;
+  inputEl: HTMLInputElement | HTMLTextAreaElement | null;
   caretRef: Ref<HTMLSpanElement | null>;
+  multiline: boolean;
   dataSources: Array<SuggestionDataSource>;
   selectionStart: number | null;
   selectionEnd: number | null;
@@ -26,8 +67,9 @@ const Highlighter = forwardRef<HTMLDivElement, HighlighterProps>(
   (
     {
       value,
-      style,
+      inputEl,
       caretRef,
+      multiline,
       dataSources,
       selectionStart,
       selectionEnd,
@@ -55,7 +97,7 @@ const Highlighter = forwardRef<HTMLDivElement, HighlighterProps>(
 
     const textIteratee: TextIteratee = (text, index, indexInPlaintext) => {
       const shouldRenderCaret =
-        selectionStart &&
+        typeof selectionStart === 'number' &&
         selectionStart === selectionEnd &&
         selectionStart >= indexInPlaintext &&
         selectionStart <= indexInPlaintext + text.length;
@@ -104,21 +146,28 @@ const Highlighter = forwardRef<HTMLDivElement, HighlighterProps>(
 
     iterateMentionsMarkup(value, dataSources, mentionIteratee, textIteratee);
 
-    return (
+    const rect = getInputRect(inputEl);
+    const containerEl = useMemo(() => getInputContainerEl(inputEl), [inputEl]);
+
+    return createPortal(
       <div
         ref={ref}
         style={{
-          ...style,
+          top: `${rect.y}px`,
+          left: `${rect.x}px`,
+          width: `${rect.width}px`,
+          height: `${rect.height}px`,
           zIndex: -1,
           overflow: 'hidden',
           position: 'absolute',
-          whiteSpace: 'pre',
+          whiteSpace: multiline ? 'pre-wrap' : 'pre',
           overscrollBehavior: 'none',
         }}
       >
         {components}
         <span style={{ visibility: 'hidden' }}>&nbsp;</span>
-      </div>
+      </div>,
+      containerEl,
     );
   },
 );

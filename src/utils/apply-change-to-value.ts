@@ -4,8 +4,19 @@ import spliceString from './splice-string';
 import getPlainText from './get-plain-text';
 import mapPlainTextIndex from './map-plain-text-index';
 
-// Applies a change from the plain text textarea to the underlying marked up value
-// guided by the textarea text selection ranges before and after the change
+/**
+ * Applies a change to a value string based on the provided plain text value and selection details.
+ * This function is commonly used to handle text input changes, including handling mentions or
+ * suggestions in a text editor-like environment.
+ *
+ * @param value - The original value string, which may include special formatting or mentions.
+ * @param plainTextValue - The updated plain text value after the change.
+ * @param selectionStartBefore - The starting position of the selection before the change. Can be `null`.
+ * @param selectionEndBefore - The ending position of the selection before the change. Can be `null`.
+ * @param selectionEndAfter - The ending position of the selection after the change.
+ * @param dataSources - An array of data sources used to map mentions or other special entities in the value.
+ * @returns The updated value string with the applied changes.
+ */
 const applyChangeToValue = (
   value: string,
   plainTextValue: string,

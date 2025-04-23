@@ -1,11 +1,11 @@
 import type {
-  HTMLProps,
+  ReactNode,
   ElementType,
   CSSProperties,
   MouseEventHandler,
 } from 'react';
 
-import { useRef, useEffect, ReactNode, forwardRef } from 'react';
+import { useRef, useEffect, forwardRef } from 'react';
 
 import type {
   SuggestionData,
@@ -17,6 +17,9 @@ import countSuggestions from '../utils/count-suggestions';
 import getSuggestionHtmlId from '../utils/get-suggestion-html-id';
 
 import type { SuggestionProps } from './Suggestion';
+import type { SuggestionsProps } from './Suggestions';
+import type { SuggestionsListProps } from './SuggestionsList';
+
 import Suggestion from './Suggestion';
 
 type SuggestionsOverlayProps = {
@@ -27,8 +30,8 @@ type SuggestionsOverlayProps = {
   ignoreAccents?: boolean;
   scrollFocusedIntoView: boolean;
   SuggestionComponent?: ElementType<SuggestionProps>;
-  SuggestionsComponent?: ElementType<HTMLProps<HTMLDivElement>>;
-  SuggestionsListComponent?: ElementType<HTMLProps<HTMLUListElement>>;
+  SuggestionsComponent?: ElementType<SuggestionsProps>;
+  SuggestionsListComponent?: ElementType<SuggestionsListProps>;
   onSelect: (
     suggestion: SuggestionData,
     queryInfo: SuggestionsQueryInfo,

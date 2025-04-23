@@ -1,5 +1,4 @@
 import type {
-  HTMLProps,
   FocusEvent,
   ElementType,
   ComponentType,
@@ -30,7 +29,6 @@ import type {
 import getMentions from '../utils/get-mentions';
 import spliceString from '../utils/splice-string';
 import getPlainText from '../utils/get-plain-text';
-import getInputRect from '../utils/get-input-rect';
 import getDataProvider from '../utils/get-data-provider';
 import countSuggestions from '../utils/count-suggestions';
 import makeTriggerRegex from '../utils/make-trigger-regex';
@@ -43,7 +41,10 @@ import findStartOfMentionInPlainText from '../utils/find-start-of-mention-in-pla
 
 import type { MentionsInputElement } from './types';
 
+import type { InputProps } from './Input';
 import type { SuggestionProps } from './Suggestion';
+import type { SuggestionsProps } from './Suggestions';
+import type { SuggestionsListProps } from './SuggestionsList';
 
 import Highlighter from './Highlighter';
 import SuggestionsOverlay from './SuggestionsOverlay';
@@ -54,10 +55,10 @@ export type MentionsInputProps<Multiline extends boolean> = {
   dataSources: Array<SuggestionDataSource>;
   ignoreAccents?: boolean;
   highlightColor?: CSSProperties['backgroundColor'];
-  InputComponent?: ElementType<HTMLProps<MentionsInputElement<Multiline>>>;
+  InputComponent?: ElementType<InputProps<MentionsInputElement<Multiline>>>;
   SuggestionComponent?: ElementType<SuggestionProps>;
-  SuggestionsComponent?: ElementType<HTMLProps<HTMLDivElement>>;
-  SuggestionsListComponent?: ElementType<HTMLProps<HTMLUListElement>>;
+  SuggestionsComponent?: ElementType<SuggestionsProps>;
+  SuggestionsListComponent?: ElementType<SuggestionsListProps>;
   onBlur?: (event: FocusEvent, clickedSuggestion: boolean) => void;
   onSelect?: ReactEventHandler<MentionsInputElement<Multiline>>;
   onChange?: (
@@ -68,7 +69,7 @@ export type MentionsInputProps<Multiline extends boolean> = {
   onKeyDown?: KeyboardEventHandler<MentionsInputElement<Multiline>>;
 };
 
-const MentionsInput = <Multiline extends boolean>({
+const MentionsInput = <Multiline extends boolean = false>({
   value = '',
   multiline = false as Multiline,
   dataSources,
@@ -289,7 +290,6 @@ const MentionsInput = <Multiline extends boolean>({
 
     highlighterRef.current.scrollTop = inputRef.current.scrollTop;
     highlighterRef.current.scrollLeft = inputRef.current.scrollLeft;
-    highlighterRef.current.style.height = `${inputRef.current.clientHeight}px`;
   };
 
   const updateSuggestions = (
@@ -686,7 +686,7 @@ const MentionsInput = <Multiline extends boolean>({
     setScrollFocusedIntoView(false);
   };
 
-  const inputProps: HTMLProps<MentionsInputElement<Multiline>> = {
+  const inputProps: InputProps<MentionsInputElement<Multiline>> = {
     ref: inputRef,
     value: getPlainText(value, dataSources),
     onCut: handleCut,
@@ -701,19 +701,20 @@ const MentionsInput = <Multiline extends boolean>({
     onCompositionEnd: handleCompositionEnd,
     style: {
       width: '100%',
+      overflow: 'hidden',
       fontSize: 'inherit',
       fontFamily: 'inherit',
+      lineHeight: 'inherit',
       letterSpacing: 'inherit',
+
       background: 'none',
       overscrollBehavior: 'none',
     },
   };
 
-  const rect = getInputRect(inputRef.current);
-
   const InputComponent = (InputComponentProp ??
     (multiline ? 'textarea' : 'input')) as ComponentType<
-    HTMLProps<MentionsInputElement<Multiline>>
+    InputProps<MentionsInputElement<Multiline>>
   >;
 
   return (
@@ -721,17 +722,13 @@ const MentionsInput = <Multiline extends boolean>({
       <Highlighter
         ref={highlighterRef}
         value={value}
+        inputEl={inputRef.current}
         caretRef={setCaretRef}
+        multiline={multiline}
         dataSources={dataSources}
         selectionStart={selectionStart}
         selectionEnd={selectionEnd}
         highlightColor={highlightColor}
-        style={{
-          top: `${rect.y}px`,
-          left: `${rect.x}px`,
-          width: `${rect.width}px`,
-          height: `${rect.height}px`,
-        }}
       />
 
       <InputComponent {...inputProps} />
