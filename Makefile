@@ -3,7 +3,7 @@ build:
 	pnpm build;
 
 publish: build
-	pnpm publish;
+	pnpm publish --access public;
 
 lint:
 	pnpm lint;
