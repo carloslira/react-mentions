@@ -42,6 +42,13 @@ const CustomSuggestion = () => {
           SuggestionsList: List,
         }}
         componentsProps={{
+          mention: {
+            style: {
+              textDecoration: 'underline',
+              backgroundColor: 'lightblue',
+              textDecorationColor: 'black',
+            },
+          },
           suggestions: {
             sx: {
               padding: 2,

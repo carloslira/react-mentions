@@ -1,4 +1,4 @@
-import type { Ref, ReactNode, CSSProperties } from 'react';
+import type { Ref, ReactNode, CSSProperties, ForwardedRef } from 'react';
 import { forwardRef, useMemo } from 'react';
 
 import { createPortal } from 'react-dom';
@@ -11,6 +11,11 @@ import type {
 } from '../utils/iterate-mentions-markup';
 
 import iterateMentionsMarkup from '../utils/iterate-mentions-markup';
+
+import type {
+  MentionsInputComponents,
+  MentionsInputComponentsProps,
+} from './types';
 
 import Mention from './Mention';
 
@@ -52,32 +57,38 @@ const getInputContainerEl = (
   return containerEl;
 };
 
-type HighlighterProps = {
+type HighlighterProps<Components extends MentionsInputComponents> = {
   value: string;
   inputEl: HTMLInputElement | HTMLTextAreaElement | null;
   caretRef: Ref<HTMLSpanElement | null>;
   multiline: boolean;
+  components?: Partial<Components>;
   dataSources: Array<SuggestionDataSource>;
   selectionStart: number | null;
   selectionEnd: number | null;
-  highlightColor?: CSSProperties['backgroundColor'];
+  highlightColor: CSSProperties['backgroundColor'];
+  componentsProps?: Partial<MentionsInputComponentsProps<Components>>;
 };
 
-const Highlighter = forwardRef<HTMLDivElement, HighlighterProps>(
-  (
+const Highlighter = forwardRef(
+  <Components extends MentionsInputComponents>(
     {
       value,
       inputEl,
       caretRef,
       multiline,
+      components,
       dataSources,
       selectionStart,
       selectionEnd,
       highlightColor,
-    },
-    ref,
+      componentsProps,
+    }: HighlighterProps<Components>,
+    ref: ForwardedRef<HTMLDivElement>,
   ) => {
-    const components: Array<ReactNode> = [];
+    const componentsArray: Array<ReactNode> = [];
+
+    const MentionComponent = components?.Mention ?? Mention;
 
     const mentionIteratee: MarkupIteratee = (
       _markup,
@@ -86,12 +97,17 @@ const Highlighter = forwardRef<HTMLDivElement, HighlighterProps>(
       id,
       display,
     ) => {
-      components.push(
-        <Mention
+      componentsArray.push(
+        <MentionComponent
+          {...componentsProps?.mention}
           key={`${id}-${index}`}
-          color={highlightColor}
-          display={display}
-        />,
+          style={{
+            backgroundColor: highlightColor,
+            ...componentsProps?.mention?.style,
+          }}
+        >
+          {componentsProps?.mention?.children ?? display}
+        </MentionComponent>,
       );
     };
 
@@ -108,7 +124,7 @@ const Highlighter = forwardRef<HTMLDivElement, HighlighterProps>(
         const endText = text.substring(splitIndex);
 
         if (startText) {
-          components.push(
+          componentsArray.push(
             <span
               key={`${index}-${indexInPlaintext}-precaret`}
               style={{ visibility: 'hidden' }}
@@ -118,12 +134,12 @@ const Highlighter = forwardRef<HTMLDivElement, HighlighterProps>(
           );
         }
 
-        components.push(
+        componentsArray.push(
           <span key="caret" ref={caretRef} style={{ visibility: 'hidden' }} />,
         );
 
         if (endText) {
-          components.push(
+          componentsArray.push(
             <span
               key={`${index}-${indexInPlaintext}-postcaret`}
               style={{ visibility: 'hidden' }}
@@ -133,7 +149,7 @@ const Highlighter = forwardRef<HTMLDivElement, HighlighterProps>(
           );
         }
       } else {
-        components.push(
+        componentsArray.push(
           <span
             key={`${index}-${indexInPlaintext}`}
             style={{ visibility: 'hidden' }}
@@ -164,7 +180,7 @@ const Highlighter = forwardRef<HTMLDivElement, HighlighterProps>(
           overscrollBehavior: 'none',
         }}
       >
-        {components}
+        {componentsArray}
         <span style={{ visibility: 'hidden' }}>&nbsp;</span>
       </div>,
       containerEl,

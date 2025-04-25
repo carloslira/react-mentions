@@ -73,7 +73,7 @@ const MentionsInput = <
   components,
   dataSources,
   ignoreAccents = false,
-  highlightColor,
+  highlightColor = 'yellow',
   componentsProps,
   onBlur,
   onSelect,
@@ -697,7 +697,6 @@ const MentionsInput = <
     onCompositionEnd: handleCompositionEnd,
     style: {
       width: '100%',
-      overflow: 'hidden',
       fontSize: 'inherit',
       fontFamily: 'inherit',
       fontWeight: 'inherit',
@@ -721,10 +720,12 @@ const MentionsInput = <
         inputEl={inputRef.current}
         caretRef={setCaretRef}
         multiline={multiline}
+        components={components}
         dataSources={dataSources}
         selectionStart={selectionStart}
         selectionEnd={selectionEnd}
         highlightColor={highlightColor}
+        componentsProps={componentsProps}
       />
 
       <InputComponent {...inputProps} />

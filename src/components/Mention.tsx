@@ -1,11 +1,6 @@
-import type { CSSProperties } from 'react';
+import type { ComponentProps } from 'react';
 
-type MentionProps = {
-  color?: CSSProperties['backgroundColor'];
-  display: string;
-};
-
-const Mention = ({ color = 'yellow', display }: MentionProps) => (
+const Mention = ({ style, ...rest }: ComponentProps<'strong'>) => (
   <strong
     style={{
       color: 'transparent',
@@ -14,11 +9,10 @@ const Mention = ({ color = 'yellow', display }: MentionProps) => (
       fontWeight: 'inherit',
       lineHeight: 'inherit',
       letterSpacing: 'inherit',
-      backgroundColor: color,
+      ...style,
     }}
-  >
-    {display}
-  </strong>
+    {...rest}
+  />
 );
 
 export default Mention;

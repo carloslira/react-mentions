@@ -1,17 +1,19 @@
-import type { ElementType, ComponentPropsWithRef } from 'react';
+import type { ElementType, ComponentProps } from 'react';
 
 export type MentionsInputComponents = {
   Input: ElementType;
+  Mention: ElementType;
   Suggestion: ElementType;
   Suggestions: ElementType;
   SuggestionsList: ElementType;
 };
 
 export type MentionsInputComponentsProps<
-  Components extends MentionsInputComponents = MentionsInputComponents,
+  Components extends MentionsInputComponents,
 > = {
-  input: ComponentPropsWithRef<Components['Input']>;
-  suggestion: ComponentPropsWithRef<Components['Suggestion']>;
-  suggestions: ComponentPropsWithRef<Components['Suggestions']>;
-  suggestionsList: ComponentPropsWithRef<Components['SuggestionsList']>;
+  input: ComponentProps<Components['Input']>;
+  mention: ComponentProps<Components['Mention']>;
+  suggestion: ComponentProps<Components['Suggestion']>;
+  suggestions: ComponentProps<Components['Suggestions']>;
+  suggestionsList: ComponentProps<Components['SuggestionsList']>;
 };
