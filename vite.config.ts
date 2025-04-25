@@ -20,7 +20,7 @@ export default defineConfig({
     sourcemap: true,
     emptyOutDir: true,
     lib: {
-      name: 'react-mentions',
+      name: 'react-mentions-input',
       entry: path.resolve(__dirname, './src/index.ts'),
       fileName: (format) => `index.${format}.js`,
     },

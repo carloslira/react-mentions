@@ -185,7 +185,7 @@ const MentionsInput = <Multiline extends boolean = false>({
       );
 
       event.clipboardData?.setData('text/plain', textData);
-      event.clipboardData?.setData('text/react-mentions', mentionsData);
+      event.clipboardData?.setData('text/mentions', mentionsData);
     },
     [value, dataSources],
   );
@@ -249,7 +249,7 @@ const MentionsInput = <Multiline extends boolean = false>({
     );
 
     const pastedData = event.clipboardData.getData('text/plain');
-    const pastedMentions = event.clipboardData.getData('text/react-mentions');
+    const pastedMentions = event.clipboardData.getData('text/mentions');
 
     const newValue = spliceString(
       value,
