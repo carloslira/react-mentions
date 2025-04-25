@@ -6,25 +6,19 @@ type MentionProps = {
 };
 
 const Mention = ({ color = 'yellow', display }: MentionProps) => (
-  <span
+  <strong
     style={{
       color: 'transparent',
-      position: 'relative',
       fontSize: 'inherit',
       fontFamily: 'inherit',
+      fontWeight: 'inherit',
+      lineHeight: 'inherit',
       letterSpacing: 'inherit',
+      backgroundColor: color,
     }}
   >
     {display}
-    <span
-      style={{
-        inset: 0,
-        position: 'absolute',
-        borderRadius: '3px',
-        backgroundColor: color,
-      }}
-    />
-  </span>
+  </strong>
 );
 
 export default Mention;

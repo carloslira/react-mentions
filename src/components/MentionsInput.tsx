@@ -704,6 +704,7 @@ const MentionsInput = <Multiline extends boolean = false>({
       overflow: 'hidden',
       fontSize: 'inherit',
       fontFamily: 'inherit',
+      fontWeight: 'inherit',
       lineHeight: 'inherit',
       letterSpacing: 'inherit',
 
