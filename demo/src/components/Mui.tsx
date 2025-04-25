@@ -1,3 +1,4 @@
+import type { HTMLProps } from 'react';
 import { useState } from 'react';
 
 import {
@@ -8,24 +9,14 @@ import {
   ListItemButton,
 } from '@mui/material';
 
-import type {
-  InputProps,
-  SuggestionProps,
-  SuggestionsListProps,
-} from '../../../src';
+import type { SuggestionProps } from '../../../src';
 
 import { MentionsInput, renderSuggestionContent } from '../../../src';
 
 import { starWarsDataSource } from '../data-sources';
 
-const Input = ({ ref, ...props }: InputProps<HTMLInputElement>) => (
-  // @ts-expect-error for some reason some refs are with type error
+const Input = ({ ref, ...props }: HTMLProps<HTMLInputElement>) => (
   <TextField inputRef={ref} slotProps={{ htmlInput: props }} fullWidth />
-);
-
-const SuggestionsList = (props: SuggestionsListProps) => (
-  // @ts-expect-error for some reason some refs are with type error
-  <List dense {...props} />
 );
 
 const Suggestion = ({
@@ -52,10 +43,17 @@ const Mui = () => {
         value={value}
         onChange={setValue}
         dataSources={[{ data: starWarsDataSource }]}
-        InputComponent={Input}
-        SuggestionComponent={Suggestion}
-        SuggestionsComponent={Paper}
-        SuggestionsListComponent={SuggestionsList}
+        components={{
+          Input,
+          Suggestion,
+          Suggestions: Paper,
+          SuggestionsList: List,
+        }}
+        componentsProps={{
+          suggestionsList: {
+            dense: true,
+          },
+        }}
       />
     </div>
   );

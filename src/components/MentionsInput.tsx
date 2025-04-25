@@ -1,7 +1,5 @@
 import type {
   FocusEvent,
-  ElementType,
-  ComponentType,
   CSSProperties,
   ClipboardEvent,
   ReactEventHandler,
@@ -39,55 +37,53 @@ import getEndOfLastMention from '../utils/get-end-of-last-mention';
 import DefaultDisplayTransform from '../utils/default-display-transform';
 import findStartOfMentionInPlainText from '../utils/find-start-of-mention-in-plain-text';
 
-import type { MentionsInputElement } from './types';
-
-import type { InputProps } from './Input';
-import type { SuggestionProps } from './Suggestion';
-import type { SuggestionsProps } from './Suggestions';
-import type { SuggestionsListProps } from './SuggestionsList';
+import type {
+  MentionsInputComponents,
+  MentionsInputComponentsProps,
+} from './types';
 
 import Highlighter from './Highlighter';
 import SuggestionsOverlay from './SuggestionsOverlay';
 
-export type MentionsInputProps<Multiline extends boolean> = {
+export type MentionsInputProps<
+  Components extends MentionsInputComponents = MentionsInputComponents,
+> = {
   value?: string;
-  multiline?: Multiline;
+  multiline?: boolean;
+  components?: Partial<Components>;
   dataSources: Array<SuggestionDataSource>;
   ignoreAccents?: boolean;
   highlightColor?: CSSProperties['backgroundColor'];
-  InputComponent?: ElementType<InputProps<MentionsInputElement<Multiline>>>;
-  SuggestionComponent?: ElementType<SuggestionProps>;
-  SuggestionsComponent?: ElementType<SuggestionsProps>;
-  SuggestionsListComponent?: ElementType<SuggestionsListProps>;
+  componentsProps?: Partial<MentionsInputComponentsProps<Components>>;
   onBlur?: (event: FocusEvent, clickedSuggestion: boolean) => void;
-  onSelect?: ReactEventHandler<MentionsInputElement<Multiline>>;
+  onSelect?: ReactEventHandler<HTMLInputElement | HTMLTextAreaElement>;
   onChange?: (
     newValue: string,
     plainTextValue: string,
     mentions: Array<MentionData>,
   ) => void;
-  onKeyDown?: KeyboardEventHandler<MentionsInputElement<Multiline>>;
+  onKeyDown?: KeyboardEventHandler<HTMLInputElement | HTMLTextAreaElement>;
 };
 
-const MentionsInput = <Multiline extends boolean = false>({
+const MentionsInput = <
+  Components extends MentionsInputComponents = MentionsInputComponents,
+>({
   value = '',
-  multiline = false as Multiline,
+  multiline = false,
+  components,
   dataSources,
   ignoreAccents = false,
   highlightColor,
-  InputComponent: InputComponentProp,
-  SuggestionComponent,
-  SuggestionsComponent,
-  SuggestionsListComponent,
+  componentsProps,
   onBlur,
   onSelect,
   onChange,
   onKeyDown,
-}: MentionsInputProps<Multiline>) => {
+}: MentionsInputProps<Components>) => {
   const isComposingRef = useRef(false);
   const suggestionsOverlayIdRef = useRef('');
 
-  const inputRef = useRef<MentionsInputElement<Multiline>>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   const highlighterRef = useRef<HTMLDivElement>(null);
 
   const queryIdRef = useRef(0);
@@ -150,7 +146,7 @@ const MentionsInput = <Multiline extends boolean = false>({
   }, [selectionStart, selectionEnd, setSelectionAfterHandlePaste]);
 
   const saveSelectionToClipboard = useCallback(
-    (event: ClipboardEvent<MentionsInputElement<Multiline>>) => {
+    (event: ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       if (!inputRef.current) {
         return;
       }
@@ -190,9 +186,9 @@ const MentionsInput = <Multiline extends boolean = false>({
     [value, dataSources],
   );
 
-  const handleCut: ClipboardEventHandler<MentionsInputElement<Multiline>> = (
-    event,
-  ) => {
+  const handleCut: ClipboardEventHandler<
+    HTMLInputElement | HTMLTextAreaElement
+  > = (event) => {
     event.preventDefault();
 
     saveSelectionToClipboard(event);
@@ -221,17 +217,17 @@ const MentionsInput = <Multiline extends boolean = false>({
     onChange?.(newValue, newPlainTextValue, getMentions(value, dataSources));
   };
 
-  const handleCopy: ClipboardEventHandler<MentionsInputElement<Multiline>> = (
-    event,
-  ) => {
+  const handleCopy: ClipboardEventHandler<
+    HTMLInputElement | HTMLTextAreaElement
+  > = (event) => {
     event.preventDefault();
 
     saveSelectionToClipboard(event);
   };
 
-  const handlePaste: ClipboardEventHandler<MentionsInputElement<Multiline>> = (
-    event,
-  ) => {
+  const handlePaste: ClipboardEventHandler<
+    HTMLInputElement | HTMLTextAreaElement
+  > = (event) => {
     event.preventDefault();
 
     const markupStartIndex = mapPlainTextIndex(
@@ -410,9 +406,9 @@ const MentionsInput = <Multiline extends boolean = false>({
     });
   };
 
-  const handleBlur: FocusEventHandler<MentionsInputElement<Multiline>> = (
-    event,
-  ) => {
+  const handleBlur: FocusEventHandler<
+    HTMLInputElement | HTMLTextAreaElement
+  > = (event) => {
     const clickedSuggestion = suggestionsMouseDownRef.current;
     suggestionsMouseDownRef.current = false;
 
@@ -430,9 +426,9 @@ const MentionsInput = <Multiline extends boolean = false>({
     onBlur?.(event, clickedSuggestion);
   };
 
-  const handleChange: ChangeEventHandler<MentionsInputElement<Multiline>> = (
-    event,
-  ) => {
+  const handleChange: ChangeEventHandler<
+    HTMLInputElement | HTMLTextAreaElement
+  > = (event) => {
     isComposingRef.current = false;
 
     let newPlainTextValue = event.target.value;
@@ -502,9 +498,9 @@ const MentionsInput = <Multiline extends boolean = false>({
     onChange?.(newValue, newPlainTextValue, mentions);
   };
 
-  const handleSelect: ReactEventHandler<MentionsInputElement<Multiline>> = (
-    event,
-  ) => {
+  const handleSelect: ReactEventHandler<
+    HTMLInputElement | HTMLTextAreaElement
+  > = (event) => {
     const target = event.target as HTMLInputElement;
     setSelectionStart(target.selectionStart);
     setSelectionEnd(target.selectionEnd);
@@ -627,9 +623,9 @@ const MentionsInput = <Multiline extends boolean = false>({
     setFocusIndex(0);
   };
 
-  const handleKeyDown: KeyboardEventHandler<MentionsInputElement<Multiline>> = (
-    event,
-  ) => {
+  const handleKeyDown: KeyboardEventHandler<
+    HTMLInputElement | HTMLTextAreaElement
+  > = (event) => {
     // do not intercept key events if the suggestions overlay is not shown
     const suggestionsCount = countSuggestions(suggestions);
 
@@ -666,13 +662,13 @@ const MentionsInput = <Multiline extends boolean = false>({
   };
 
   const handleCompositionStart: CompositionEventHandler<
-    MentionsInputElement<Multiline>
+    HTMLInputElement | HTMLTextAreaElement
   > = () => {
     isComposingRef.current = true;
   };
 
   const handleCompositionEnd: CompositionEventHandler<
-    MentionsInputElement<Multiline>
+    HTMLInputElement | HTMLTextAreaElement
   > = () => {
     isComposingRef.current = false;
   };
@@ -686,7 +682,7 @@ const MentionsInput = <Multiline extends boolean = false>({
     setScrollFocusedIntoView(false);
   };
 
-  const inputProps: InputProps<MentionsInputElement<Multiline>> = {
+  const inputProps = {
     ref: inputRef,
     value: getPlainText(value, dataSources),
     onCut: handleCut,
@@ -711,12 +707,11 @@ const MentionsInput = <Multiline extends boolean = false>({
       background: 'none',
       overscrollBehavior: 'none',
     },
+    ...componentsProps?.input,
   };
 
-  const InputComponent = (InputComponentProp ??
-    (multiline ? 'textarea' : 'input')) as ComponentType<
-    InputProps<MentionsInputElement<Multiline>>
-  >;
+  const InputComponent =
+    components?.Input ?? (multiline ? 'textarea' : 'input');
 
   return (
     <div style={{ position: 'relative' }}>
@@ -740,16 +735,15 @@ const MentionsInput = <Multiline extends boolean = false>({
           id={suggestionsOverlayIdRef.current}
           ref={setPopperRef}
           style={styles.popper}
+          components={components}
           focusIndex={focusIndex}
           suggestions={suggestions}
           ignoreAccents={ignoreAccents}
+          componentsProps={componentsProps}
           scrollFocusedIntoView={scrollFocusedIntoView}
           onSelect={addMention}
           onMouseDown={handleSuggestionsMouseDown}
           onMouseEnter={handleSuggestionsMouseEnter}
-          SuggestionComponent={SuggestionComponent}
-          SuggestionsComponent={SuggestionsComponent}
-          SuggestionsListComponent={SuggestionsListComponent}
         />
       )}
     </div>

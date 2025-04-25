@@ -1,5 +1,5 @@
 {
-  "name": "react-mentions-input",
+  "name": "@carloslira/react-mentions-input",
   "version": "1.0.0",
   "files": [
     "dist"

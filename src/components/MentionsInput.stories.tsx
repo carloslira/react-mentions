@@ -1,13 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
+import type { HTMLProps } from 'react';
 import { useState, forwardRef } from 'react';
 
 import renderSuggestionContent from '../utils/render-suggestion-content';
 
-import type { InputProps } from './Input';
 import type { SuggestionProps } from './Suggestion';
-import type { SuggestionsProps } from './Suggestions';
-import type { SuggestionsListProps } from './SuggestionsList';
 
 import type { MentionsInputProps } from './MentionsInput';
 import MentionsInput from './MentionsInput';
@@ -37,9 +35,7 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-const Template = <Multiline extends boolean>(
-  args: MentionsInputProps<Multiline>,
-) => {
+const Template = (args: MentionsInputProps) => {
   const [value, setValue] = useState('');
 
   return <MentionsInput {...args} value={value} onChange={setValue} />;
@@ -92,21 +88,22 @@ export const DisplayTransform: Story = {
   },
 };
 
-const Input = forwardRef<HTMLInputElement, InputProps<HTMLInputElement>>(
+const Input = forwardRef<HTMLInputElement, HTMLProps<HTMLInputElement>>(
   ({ style, ...rest }, ref) => (
     <input ref={ref} {...rest} style={{ ...style }} />
   ),
 );
 
-const Suggestions = (props: SuggestionsProps) => (
+const Suggestions = (props: HTMLProps<HTMLDivElement>) => (
   <div {...props} style={{ padding: '8px 12px 8px', backgroundColor: 'red' }} />
 );
 
-const SuggestionsList = forwardRef<HTMLUListElement, SuggestionsListProps>(
-  ({ style, ...rest }, ref) => (
-    <ul ref={ref} {...rest} style={{ ...style, backgroundColor: 'blue' }} />
-  ),
-);
+const SuggestionsList = forwardRef<
+  HTMLUListElement,
+  HTMLProps<HTMLUListElement>
+>(({ style, ...rest }, ref) => (
+  <ul ref={ref} {...rest} style={{ ...style, backgroundColor: 'blue' }} />
+));
 
 const Suggestion = ({
   index,
@@ -132,11 +129,12 @@ const Suggestion = ({
 export const CustomComponents: Story = {
   render: Template,
   args: {
-    // @ts-expect-error This should work outside this scope because of the generic aspect of MentionsInput.
-    InputComponent: Input,
-    SuggestionComponent: Suggestion,
-    SuggestionsComponent: Suggestions,
-    SuggestionsListComponent: SuggestionsList,
+    components: {
+      Input,
+      Suggestion,
+      Suggestions,
+      SuggestionsList,
+    },
     dataSources: [
       {
         data: starWarsDataSource,

@@ -1,6 +1,6 @@
 import type {
   ReactNode,
-  ElementType,
+  ForwardedRef,
   CSSProperties,
   MouseEventHandler,
 } from 'react';
@@ -16,22 +16,19 @@ import type {
 import countSuggestions from '../utils/count-suggestions';
 import getSuggestionHtmlId from '../utils/get-suggestion-html-id';
 
-import type { SuggestionProps } from './Suggestion';
-import type { SuggestionsProps } from './Suggestions';
-import type { SuggestionsListProps } from './SuggestionsList';
+import { MentionsInputComponents, MentionsInputComponentsProps } from './types';
 
 import Suggestion from './Suggestion';
 
-type SuggestionsOverlayProps = {
+type SuggestionsOverlayProps<Components extends MentionsInputComponents> = {
   id: string;
   style?: CSSProperties;
+  components?: Partial<Components>;
   focusIndex: number;
   suggestions: SuggestionsMap;
   ignoreAccents?: boolean;
+  componentsProps?: Partial<MentionsInputComponentsProps<Components>>;
   scrollFocusedIntoView: boolean;
-  SuggestionComponent?: ElementType<SuggestionProps>;
-  SuggestionsComponent?: ElementType<SuggestionsProps>;
-  SuggestionsListComponent?: ElementType<SuggestionsListProps>;
   onSelect: (
     suggestion: SuggestionData,
     queryInfo: SuggestionsQueryInfo,
@@ -40,23 +37,22 @@ type SuggestionsOverlayProps = {
   onMouseEnter: (newFocusIndex: number) => void;
 };
 
-const SuggestionsOverlay = forwardRef<HTMLDivElement, SuggestionsOverlayProps>(
-  (
+const SuggestionsOverlay = forwardRef(
+  <Components extends MentionsInputComponents>(
     {
       id,
+      components,
       focusIndex,
       suggestions,
       ignoreAccents,
+      componentsProps,
       scrollFocusedIntoView,
-      SuggestionComponent = Suggestion,
-      SuggestionsComponent = 'div',
-      SuggestionsListComponent = 'ul',
       onSelect,
       onMouseDown,
       onMouseEnter,
       ...rest
-    },
-    ref,
+    }: SuggestionsOverlayProps<Components>,
+    ref: ForwardedRef<HTMLDivElement>,
   ) => {
     const listRef = useRef<HTMLUListElement>(null);
 
@@ -84,6 +80,10 @@ const SuggestionsOverlay = forwardRef<HTMLDivElement, SuggestionsOverlayProps>(
       }
     }, [focusIndex, scrollFocusedIntoView]);
 
+    const SuggestionComponent = components?.Suggestion ?? Suggestion;
+    const SuggestionsComponent = components?.Suggestions ?? 'div';
+    const SuggestionsListComponent = components?.SuggestionsList ?? 'ul';
+
     const renderSuggestion = (
       result: SuggestionData,
       queryInfo: SuggestionsQueryInfo,
@@ -103,6 +103,7 @@ const SuggestionsOverlay = forwardRef<HTMLDivElement, SuggestionsOverlayProps>(
           ignoreAccents={ignoreAccents}
           onClick={() => onSelect(result, queryInfo)}
           onMouseEnter={() => onMouseEnter?.(index)}
+          {...componentsProps?.suggestion}
         />
       );
     };
@@ -117,6 +118,7 @@ const SuggestionsOverlay = forwardRef<HTMLDivElement, SuggestionsOverlayProps>(
             overflow: 'auto',
             listStyleType: 'none',
           }}
+          {...componentsProps?.suggestionsList}
         >
           {Object.values(suggestions).reduce<Array<ReactNode>>(
             (acc, { results, queryInfo }) => [
@@ -139,7 +141,10 @@ const SuggestionsOverlay = forwardRef<HTMLDivElement, SuggestionsOverlayProps>(
 
     return (
       <div ref={ref} {...rest}>
-        <SuggestionsComponent onMouseDown={onMouseDown}>
+        <SuggestionsComponent
+          onMouseDown={onMouseDown}
+          {...componentsProps?.suggestions}
+        >
           {renderSuggestions()}
         </SuggestionsComponent>
       </div>
