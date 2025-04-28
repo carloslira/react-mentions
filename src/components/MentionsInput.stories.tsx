@@ -35,8 +35,9 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-// @ts-expect-error Ignore MentionsInputProps generics
-const Template = (args: MentionsInputProps) => {
+const Template = <Multiline extends boolean>(
+  args: MentionsInputProps<Multiline>,
+) => {
   const [value, setValue] = useState('');
 
   return <MentionsInput {...args} value={value} onChange={setValue} />;

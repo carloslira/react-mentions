@@ -64,8 +64,12 @@ const CustomSuggestion = () => {
             displayTransform: (id, display) => `@${display ?? id}`,
           },
         ]}
-        renderInput={(props) => (
-          <TextField fullWidth slotProps={{ htmlInput: props }} />
+        renderInput={({ ref, ...props }) => (
+          <TextField
+            inputRef={ref}
+            fullWidth
+            slotProps={{ htmlInput: props }}
+          />
         )}
       />
     </div>

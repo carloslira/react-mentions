@@ -3,7 +3,6 @@ import type {
   HTMLProps,
   ReactNode,
   FocusEvent,
-  ReactElement,
   ForwardedRef,
   CSSProperties,
   ClipboardEvent,
@@ -46,13 +45,14 @@ import type {
   MentionsInputElement,
   MentionsInputComponents,
   MentionsInputComponentsProps,
+  InputProps,
 } from './types';
 
 import Highlighter from './Highlighter';
 import SuggestionsOverlay from './SuggestionsOverlay';
 
 export type MentionsInputProps<
-  Multiline extends boolean,
+  Multiline extends boolean = false,
   Components extends MentionsInputComponents = MentionsInputComponents,
 > = Omit<
   HTMLProps<MentionsInputElement<Multiline>>,
@@ -71,13 +71,11 @@ export type MentionsInputProps<
     plainTextValue: string,
     mentions: Array<MentionData>,
   ) => void;
-  renderInput?: (
-    props: HTMLProps<MentionsInputElement<Multiline>>,
-  ) => ReactNode;
+  renderInput?: (props: InputProps<Multiline>) => ReactNode;
 };
 
 const MentionsInputImpl = <
-  Multiline extends boolean,
+  Multiline extends boolean = false,
   Components extends MentionsInputComponents = MentionsInputComponents,
 >(
   {
@@ -100,7 +98,7 @@ const MentionsInputImpl = <
   const isComposingRef = useRef(false);
   const suggestionsOverlayIdRef = useRef('');
 
-  const inputRef = useRef<MentionsInputElement<Multiline>>(null);
+  const inputRef = useRef<MentionsInputElement<Multiline> | null>(null);
   const highlighterRef = useRef<HTMLDivElement>(null);
 
   const queryIdRef = useRef(0);
@@ -709,7 +707,8 @@ const MentionsInputImpl = <
     }
   };
 
-  const inputProps: HTMLProps<MentionsInputElement<Multiline>> = {
+  const inputProps: InputProps<Multiline> = {
+    ...rest,
     ref: setInputRef,
     value: getPlainText(value, dataSources),
     onCut: handleCut,
@@ -723,6 +722,7 @@ const MentionsInputImpl = <
     onCompositionStart: handleCompositionStart,
     onCompositionEnd: handleCompositionEnd,
     style: {
+      ...rest.style,
       width: '100%',
       fontSize: 'inherit',
       fontFamily: 'inherit',
@@ -733,7 +733,6 @@ const MentionsInputImpl = <
       background: 'none',
       overscrollBehavior: 'none',
     },
-    ...rest,
   };
 
   const renderInput = () => {
@@ -788,12 +787,12 @@ const MentionsInputImpl = <
 };
 
 const MentionsInput = forwardRef(MentionsInputImpl) as <
-  Multiline extends boolean,
+  Multiline extends boolean = false,
   Components extends MentionsInputComponents = MentionsInputComponents,
 >(
   props: MentionsInputProps<Multiline, Components> & {
     ref?: Ref<MentionsInputElement<Multiline>>;
   },
-) => ReactElement;
+) => JSX.Element;
 
 export default MentionsInput;

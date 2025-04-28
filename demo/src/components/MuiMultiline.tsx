@@ -49,9 +49,10 @@ const MuiMultiline = () => {
             dense: true,
           },
         }}
-        renderInput={(props) => (
+        renderInput={({ ref, ...props }) => (
           <TextField
             rows={6}
+            inputRef={ref}
             multiline
             fullWidth
             slotProps={{ htmlInput: props }}

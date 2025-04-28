@@ -135,7 +135,11 @@ const Highlighter = forwardRef(
         }
 
         componentsArray.push(
-          <span key="caret" ref={caretRef} style={{ visibility: 'hidden' }} />,
+          <span
+            key="caret"
+            ref={caretRef as Ref<HTMLSpanElement>}
+            style={{ visibility: 'hidden' }}
+          />,
         );
 
         if (endText) {
