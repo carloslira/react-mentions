@@ -17,9 +17,10 @@ const Multiline = () => {
         onChange={setValue}
         multiline
         dataSources={[{ data: starWarsDataSource }]}
-        components={{
-          Input: TextareaAutosize,
-        }}
+        renderInput={({ ref, style, ...props }) => (
+          // @ts-expect-error ref is giving unknown type error, probably because of React 19 and 16 diff.
+          <TextareaAutosize ref={ref} style={style} {...props} />
+        )}
       />
     </div>
   );

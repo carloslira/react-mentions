@@ -41,6 +41,7 @@ const SuggestionsOverlay = forwardRef(
   <Components extends MentionsInputComponents>(
     {
       id,
+      style,
       components,
       focusIndex,
       suggestions,
@@ -50,7 +51,6 @@ const SuggestionsOverlay = forwardRef(
       onSelect,
       onMouseDown,
       onMouseEnter,
-      ...rest
     }: SuggestionsOverlayProps<Components>,
     ref: ForwardedRef<HTMLDivElement>,
   ) => {
@@ -140,7 +140,7 @@ const SuggestionsOverlay = forwardRef(
     }
 
     return (
-      <div ref={ref} {...rest}>
+      <div ref={ref} style={{ ...style, zIndex: 999 }}>
         <SuggestionsComponent
           onMouseDown={onMouseDown}
           {...componentsProps?.suggestions}

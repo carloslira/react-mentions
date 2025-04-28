@@ -1,7 +1,9 @@
 import type { ElementType, ComponentProps } from 'react';
 
+export type MentionsInputElement<Multiline extends boolean> =
+  Multiline extends true ? HTMLTextAreaElement : HTMLInputElement;
+
 export type MentionsInputComponents = {
-  Input: ElementType;
   Mention: ElementType;
   Suggestion: ElementType;
   Suggestions: ElementType;
@@ -11,7 +13,6 @@ export type MentionsInputComponents = {
 export type MentionsInputComponentsProps<
   Components extends MentionsInputComponents,
 > = {
-  input: ComponentProps<Components['Input']>;
   mention: ComponentProps<Components['Mention']>;
   suggestion: ComponentProps<Components['Suggestion']>;
   suggestions: ComponentProps<Components['Suggestions']>;

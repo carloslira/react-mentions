@@ -35,6 +35,7 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
+// @ts-expect-error Ignore MentionsInputProps generics
 const Template = (args: MentionsInputProps) => {
   const [value, setValue] = useState('');
 
@@ -88,12 +89,6 @@ export const DisplayTransform: Story = {
   },
 };
 
-const Input = forwardRef<HTMLInputElement, HTMLProps<HTMLInputElement>>(
-  ({ style, ...rest }, ref) => (
-    <input ref={ref} {...rest} style={{ ...style }} />
-  ),
-);
-
 const Suggestions = (props: HTMLProps<HTMLDivElement>) => (
   <div {...props} style={{ padding: '8px 12px 8px', backgroundColor: 'red' }} />
 );
@@ -130,7 +125,6 @@ export const CustomComponents: Story = {
   render: Template,
   args: {
     components: {
-      Input,
       Suggestion,
       Suggestions,
       SuggestionsList,
@@ -140,5 +134,8 @@ export const CustomComponents: Story = {
         data: starWarsDataSource,
       },
     ],
+    renderInput: (props) => (
+      <input {...(props as HTMLProps<HTMLInputElement>)} />
+    ),
   },
 };
