@@ -11,6 +11,7 @@ export type SuggestionData = {
 export type SuggestionDataSource = {
   data:
     | Array<SuggestionData>
+    | ((query: string) => Array<SuggestionData>)
     | ((query: string) => Promise<Array<SuggestionData>>);
   regex?: RegExp;
   markup?: string;

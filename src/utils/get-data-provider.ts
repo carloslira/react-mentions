@@ -5,6 +5,7 @@ import getSubstringIndex from './get-substring-index';
 const getDataProvider = (
   data:
     | Array<SuggestionData>
+    | ((query: string) => Array<SuggestionData>)
     | ((query: string) => Promise<Array<SuggestionData>>),
   ignoreAccents?: boolean,
 ) => {
