@@ -1,11 +1,9 @@
 import type {
-  JSX,
   Ref,
   HTMLProps,
   ReactNode,
   FocusEvent,
   RefCallback,
-  ForwardedRef,
   CSSProperties,
   ClipboardEvent,
   ReactEventHandler,
@@ -16,14 +14,7 @@ import type {
   CompositionEventHandler,
 } from 'react';
 
-import {
-  useRef,
-  useMemo,
-  useState,
-  useEffect,
-  forwardRef,
-  useCallback,
-} from 'react';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 
 import { Key, DefaultMarkupTemplate } from '../constants';
 
@@ -68,6 +59,7 @@ export type MentionsInputProps<
   'ref' | 'value' | 'onBlur' | 'onChange'
 > & {
   value?: string;
+  inputRef?: Ref<MentionsInputElement<Multiline>>;
   multiline?: Multiline;
   components?: Partial<Components>;
   dataSources: Array<SuggestionDataSource>;
@@ -83,27 +75,25 @@ export type MentionsInputProps<
   renderInput?: (props: InputProps<Multiline>) => ReactNode;
 };
 
-const MentionsInputImpl = <
+const MentionsInput = <
   Multiline extends boolean = false,
   Components extends MentionsInputComponents = MentionsInputComponents,
->(
-  {
-    value = '',
-    multiline = false as Multiline,
-    components,
-    dataSources,
-    ignoreAccents = false,
-    highlightColor = 'yellow',
-    componentsProps,
-    onBlur,
-    onSelect,
-    onChange,
-    onKeyDown,
-    renderInput: renderInputProp,
-    ...rest
-  }: MentionsInputProps<Multiline, Components>,
-  ref: ForwardedRef<MentionsInputElement<Multiline>>,
-) => {
+>({
+  value = '',
+  inputRef: inputRefProp,
+  multiline = false as Multiline,
+  components,
+  dataSources,
+  ignoreAccents = false,
+  highlightColor = 'yellow',
+  componentsProps,
+  onBlur,
+  onSelect,
+  onChange,
+  onKeyDown,
+  renderInput: renderInputProp,
+  ...rest
+}: MentionsInputProps<Multiline, Components>) => {
   const isComposingRef = useRef(false);
   const suggestionsOverlayIdRef = useRef('');
 
@@ -764,13 +754,13 @@ const MentionsInputImpl = <
     (node) => {
       inputRef.current = node;
 
-      if (typeof ref === 'function') {
-        ref(node);
-      } else if (ref) {
-        ref.current = node;
+      if (typeof inputRefProp === 'function') {
+        inputRefProp(node);
+      } else if (inputRefProp) {
+        inputRefProp.current = node;
       }
     },
-    [ref],
+    [inputRefProp],
   );
 
   const renderedInput = useMemo(() => {
@@ -865,14 +855,5 @@ const MentionsInputImpl = <
     </div>
   );
 };
-
-const MentionsInput = forwardRef(MentionsInputImpl) as <
-  Multiline extends boolean = false,
-  Components extends MentionsInputComponents = MentionsInputComponents,
->(
-  props: MentionsInputProps<Multiline, Components> & {
-    ref?: Ref<MentionsInputElement<Multiline>>;
-  },
-) => JSX.Element;
 
 export default MentionsInput;
