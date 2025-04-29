@@ -1,6 +1,6 @@
 {
   "name": "@carloslira/react-mentions-input",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Input to mention anything you want, anywhere you want.",
   "homepage": "https://carloslira.github.io/react-mentions-input",
   "bugs": {
@@ -32,8 +32,6 @@
   "dependencies": {
     "@popperjs/core": "^2.11.8",
     "invariant": "^2.2.4",
-    "react": "^16.8.0",
-    "react-dom": "^16.8.0",
     "react-popper": "^2.3.0"
   },
   "devDependencies": {
