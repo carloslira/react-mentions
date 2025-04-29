@@ -17,7 +17,7 @@ export default defineConfig({
       rollupTypes: true,
     }),
     external({
-      externalizeDeps: ['react-dom', 'react-icons'],
+      externalizeDeps: ['react', 'react-dom'],
     }),
   ],
   build: {
