@@ -5,7 +5,7 @@ import type {
   MouseEventHandler,
 } from 'react';
 
-import { useRef, useEffect, forwardRef } from 'react';
+import { useRef, useMemo, useEffect, forwardRef } from 'react';
 
 import type {
   SuggestionData,
@@ -13,7 +13,6 @@ import type {
   SuggestionsQueryInfo,
 } from '../types';
 
-import countSuggestions from '../utils/count-suggestions';
 import getSuggestionHtmlId from '../utils/get-suggestion-html-id';
 
 import { MentionsInputComponents, MentionsInputComponentsProps } from './types';
@@ -84,58 +83,48 @@ const SuggestionsOverlay = forwardRef(
     const SuggestionsComponent = components?.Suggestions ?? 'div';
     const SuggestionsListComponent = components?.SuggestionsList ?? 'ul';
 
-    const renderSuggestion = (
-      result: SuggestionData,
-      queryInfo: SuggestionsQueryInfo,
-      index: number,
-    ) => {
-      const isFocused = index === focusIndex;
-      const { dataSourceIndex, query } = queryInfo;
+    const renderedSuggestions = useMemo(
+      () =>
+        Object.values(suggestions).reduce<Array<ReactNode>>(
+          (acc, { results, queryInfo }) => [
+            ...acc,
+            ...results.map((result, index) => {
+              const suggestionIndex = acc.length + index;
 
-      return (
-        <SuggestionComponent
-          id={getSuggestionHtmlId(id, index)}
-          key={`${dataSourceIndex}-${result.id}`}
-          index={index}
-          query={query}
-          focused={isFocused}
-          suggestion={result}
-          ignoreAccents={ignoreAccents}
-          onClick={() => onSelect(result, queryInfo)}
-          onMouseEnter={() => onMouseEnter?.(index)}
-          {...componentsProps?.suggestion}
-        />
-      );
-    };
+              const isFocused = suggestionIndex === focusIndex;
+              const { dataSourceIndex, query } = queryInfo;
 
-    const renderSuggestions = () => {
-      const suggestionsToRender = (
-        <SuggestionsListComponent
-          id={id}
-          ref={listRef}
-          role="listbox"
-          style={{
-            overflow: 'auto',
-            listStyleType: 'none',
-          }}
-          {...componentsProps?.suggestionsList}
-        >
-          {Object.values(suggestions).reduce<Array<ReactNode>>(
-            (acc, { results, queryInfo }) => [
-              ...acc,
-              ...results.map((result, index) =>
-                renderSuggestion(result, queryInfo, acc.length + index),
-              ),
-            ],
-            [],
-          )}
-        </SuggestionsListComponent>
-      );
+              return (
+                <SuggestionComponent
+                  id={getSuggestionHtmlId(id, suggestionIndex)}
+                  key={`${dataSourceIndex}-${result.id}`}
+                  index={suggestionIndex}
+                  query={query}
+                  focused={isFocused}
+                  suggestion={result}
+                  ignoreAccents={ignoreAccents}
+                  onClick={() => onSelect(result, queryInfo)}
+                  onMouseEnter={() => onMouseEnter?.(suggestionIndex)}
+                  {...componentsProps?.suggestion}
+                />
+              );
+            }),
+          ],
+          [],
+        ),
+      [
+        id,
+        focusIndex,
+        suggestions,
+        ignoreAccents,
+        componentsProps?.suggestion,
+        SuggestionComponent,
+        onSelect,
+        onMouseEnter,
+      ],
+    );
 
-      return suggestionsToRender;
-    };
-
-    if (countSuggestions(suggestions) <= 0) {
+    if (renderedSuggestions.length <= 0) {
       return null;
     }
 
@@ -145,7 +134,18 @@ const SuggestionsOverlay = forwardRef(
           onMouseDown={onMouseDown}
           {...componentsProps?.suggestions}
         >
-          {renderSuggestions()}
+          <SuggestionsListComponent
+            id={id}
+            ref={listRef}
+            role="listbox"
+            style={{
+              overflow: 'auto',
+              listStyleType: 'none',
+            }}
+            {...componentsProps?.suggestionsList}
+          >
+            {renderedSuggestions}
+          </SuggestionsListComponent>
         </SuggestionsComponent>
       </div>
     );

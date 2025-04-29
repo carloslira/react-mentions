@@ -16,7 +16,14 @@ import type {
   CompositionEventHandler,
 } from 'react';
 
-import { useRef, useState, useEffect, forwardRef, useCallback } from 'react';
+import {
+  useRef,
+  useMemo,
+  useState,
+  useEffect,
+  forwardRef,
+  useCallback,
+} from 'react';
 
 import { Key, DefaultMarkupTemplate } from '../constants';
 
@@ -203,98 +210,118 @@ const MentionsInputImpl = <
     [value, dataSources],
   );
 
-  const handleCut: ClipboardEventHandler<MentionsInputElement<Multiline>> = (
-    event,
-  ) => {
-    event.preventDefault();
+  const handleCut = useCallback<
+    ClipboardEventHandler<MentionsInputElement<Multiline>>
+  >(
+    (event) => {
+      event.preventDefault();
 
-    saveSelectionToClipboard(event);
+      saveSelectionToClipboard(event);
 
-    const markupStartIndex = mapPlainTextIndex(
+      const markupStartIndex = mapPlainTextIndex(
+        value,
+        dataSources,
+        selectionStart,
+        'START',
+      );
+
+      const markupEndIndex = mapPlainTextIndex(
+        value,
+        dataSources,
+        selectionEnd,
+        'END',
+      );
+
+      const newValue = [
+        value.slice(0, markupStartIndex ?? undefined),
+        value.slice(markupEndIndex ?? undefined),
+      ].join('');
+
+      const newPlainTextValue = getPlainText(newValue, dataSources);
+
+      onChange?.(newValue, newPlainTextValue, getMentions(value, dataSources));
+    },
+    [
       value,
       dataSources,
       selectionStart,
-      'START',
-    );
-
-    const markupEndIndex = mapPlainTextIndex(
-      value,
-      dataSources,
       selectionEnd,
-      'END',
-    );
+      onChange,
+      saveSelectionToClipboard,
+    ],
+  );
 
-    const newValue = [
-      value.slice(0, markupStartIndex ?? undefined),
-      value.slice(markupEndIndex ?? undefined),
-    ].join('');
+  const handleCopy = useCallback<
+    ClipboardEventHandler<MentionsInputElement<Multiline>>
+  >(
+    (event) => {
+      event.preventDefault();
 
-    const newPlainTextValue = getPlainText(newValue, dataSources);
+      saveSelectionToClipboard(event);
+    },
+    [saveSelectionToClipboard],
+  );
 
-    onChange?.(newValue, newPlainTextValue, getMentions(value, dataSources));
-  };
+  const handlePaste = useCallback<
+    ClipboardEventHandler<MentionsInputElement<Multiline>>
+  >(
+    (event) => {
+      event.preventDefault();
 
-  const handleCopy: ClipboardEventHandler<MentionsInputElement<Multiline>> = (
-    event,
-  ) => {
-    event.preventDefault();
+      const markupStartIndex = mapPlainTextIndex(
+        value,
+        dataSources,
+        selectionStart,
+        'START',
+      );
 
-    saveSelectionToClipboard(event);
-  };
+      const markupEndIndex = mapPlainTextIndex(
+        value,
+        dataSources,
+        selectionEnd,
+        'END',
+      );
 
-  const handlePaste: ClipboardEventHandler<MentionsInputElement<Multiline>> = (
-    event,
-  ) => {
-    event.preventDefault();
+      const pastedData = event.clipboardData.getData('text/plain');
+      const pastedMentions = event.clipboardData.getData('text/mentions');
 
-    const markupStartIndex = mapPlainTextIndex(
-      value,
-      dataSources,
-      selectionStart,
-      'START',
-    );
+      const newValue = spliceString(
+        value,
+        markupStartIndex ?? 0,
+        markupEndIndex ?? 0,
+        pastedMentions === '' ? pastedData : pastedMentions,
+      ).replace(/\r/g, '');
 
-    const markupEndIndex = mapPlainTextIndex(
-      value,
-      dataSources,
-      selectionEnd,
-      'END',
-    );
+      const newPlainTextValue = getPlainText(newValue, dataSources);
 
-    const pastedData = event.clipboardData.getData('text/plain');
-    const pastedMentions = event.clipboardData.getData('text/mentions');
+      onChange?.(
+        newValue,
+        newPlainTextValue,
+        getMentions(newValue, dataSources),
+      );
 
-    const newValue = spliceString(
-      value,
-      markupStartIndex ?? 0,
-      markupEndIndex ?? 0,
-      pastedMentions === '' ? pastedData : pastedMentions,
-    ).replace(/\r/g, '');
+      if (typeof selectionStart !== 'number') {
+        return;
+      }
 
-    const newPlainTextValue = getPlainText(newValue, dataSources);
+      // Move the cursor position to the end of the pasted data
+      const startOfMention = findStartOfMentionInPlainText(
+        value,
+        dataSources,
+        selectionStart,
+      );
 
-    onChange?.(newValue, newPlainTextValue, getMentions(newValue, dataSources));
+      const nextPos =
+        (startOfMention || selectionStart) +
+        getPlainText(pastedMentions ?? pastedData!, dataSources).length;
 
-    if (typeof selectionStart !== 'number') {
-      return;
-    }
+      setSelectionStart(nextPos);
+      setSelectionEnd(nextPos);
 
-    // Move the cursor position to the end of the pasted data
-    const startOfMention = findStartOfMentionInPlainText(
-      value,
-      dataSources,
-      selectionStart,
-    );
-
-    const nextPos =
-      (startOfMention || selectionStart) +
-      getPlainText(pastedMentions ?? pastedData!, dataSources).length;
-
-    setSelectionStart(nextPos);
-    setSelectionEnd(nextPos);
-
-    setSetSelectionAfterHandlePaste(true);
-  };
+      setSetSelectionAfterHandlePaste(true);
+    },
+    [value, dataSources, selectionStart, selectionEnd, onChange],
+  );
 
   const updateHighlighterScroll = () => {
     if (!inputRef.current || !highlighterRef.current) {
@@ -305,250 +332,278 @@ const MentionsInputImpl = <
     highlighterRef.current.scrollLeft = inputRef.current.scrollLeft;
   };
 
-  const updateSuggestions = (
-    queryId: number,
-    dataSourceIndex: number,
-    query: string,
-    querySequenceStart: number,
-    querySequenceEnd: number,
-    plainTextValue: string,
-    results: Array<SuggestionData>,
-  ) => {
-    // neglect async results from previous queries
-    if (queryId !== queryIdRef.current) {
-      return;
-    }
+  const updateSuggestions = useCallback(
+    (
+      queryId: number,
+      dataSourceIndex: number,
+      query: string,
+      querySequenceStart: number,
+      querySequenceEnd: number,
+      plainTextValue: string,
+      results: Array<SuggestionData>,
+    ) => {
+      // neglect async results from previous queries
+      if (queryId !== queryIdRef.current) {
+        return;
+      }
 
-    // save in property so that multiple sync state updates from different mentions sources
-    // won't overwrite each other
-    suggestionsRef.current = {
-      ...suggestionsRef.current,
-      [dataSourceIndex]: {
-        queryInfo: {
+      // save in property so that multiple sync state updates from different mentions sources
+      // won't overwrite each other
+      suggestionsRef.current = {
+        ...suggestionsRef.current,
+        [dataSourceIndex]: {
+          queryInfo: {
+            dataSourceIndex,
+            query,
+            querySequenceStart,
+            querySequenceEnd,
+            plainTextValue,
+          },
+          results,
+        },
+      };
+
+      const suggestionsCount = countSuggestions(suggestionsRef.current);
+      setSuggestions(suggestionsRef.current);
+      setFocusIndex(
+        focusIndex >= suggestionsCount
+          ? Math.max(suggestionsCount - 1, 0)
+          : focusIndex,
+      );
+    },
+    [focusIndex],
+  );
+
+  const queryData = useCallback(
+    (
+      query: string,
+      dataSourceIndex: number,
+      querySequenceStart: number,
+      querySequenceEnd: number,
+      plainTextValue: string,
+    ) => {
+      const dataSource = dataSources[dataSourceIndex];
+      const provideData = getDataProvider(dataSource.data, ignoreAccents);
+
+      const syncResult = provideData(query);
+      if (syncResult instanceof Array) {
+        updateSuggestions(
+          queryIdRef.current,
           dataSourceIndex,
           query,
           querySequenceStart,
           querySequenceEnd,
           plainTextValue,
-        },
-        results,
-      },
-    };
-
-    const suggestionsCount = countSuggestions(suggestionsRef.current);
-    setSuggestions(suggestionsRef.current);
-    setFocusIndex(
-      focusIndex >= suggestionsCount
-        ? Math.max(suggestionsCount - 1, 0)
-        : focusIndex,
-    );
-  };
-
-  const queryData = (
-    query: string,
-    dataSourceIndex: number,
-    querySequenceStart: number,
-    querySequenceEnd: number,
-    plainTextValue: string,
-  ) => {
-    const dataSource = dataSources[dataSourceIndex];
-    const provideData = getDataProvider(dataSource.data, ignoreAccents);
-
-    const syncResult = provideData(query);
-    if (syncResult instanceof Array) {
-      updateSuggestions(
-        queryIdRef.current,
-        dataSourceIndex,
-        query,
-        querySequenceStart,
-        querySequenceEnd,
-        plainTextValue,
-        syncResult,
-      );
-    }
-  };
-
-  const updateMentionsQueries = (
-    plainTextValue: string,
-    plainTextIndex: number | null,
-  ) => {
-    // Invalidate previous queries. Async results for previous queries will be neglected.
-    queryIdRef.current++;
-    suggestionsRef.current = {};
-
-    setSuggestions({});
-
-    const positionInValue = mapPlainTextIndex(
-      value,
-      dataSources,
-      plainTextIndex,
-      'NULL',
-    );
-
-    // If caret is inside of mention, do not query
-    if (positionInValue === null) {
-      return;
-    }
-
-    // Extract substring in between the end of the previous mention and the caret
-    const substringStartIndex = getEndOfLastMention(
-      value.substring(0, positionInValue),
-      dataSources,
-    );
-
-    const substring = plainTextValue.substring(
-      substringStartIndex,
-      plainTextIndex ?? undefined,
-    );
-
-    dataSources.forEach((dataSource, index) => {
-      const regex = makeTriggerRegex(
-        dataSource.trigger,
-        dataSource.allowSpaceInQuery,
-      );
-
-      const match = substring.match(regex);
-      if (match) {
-        const querySequenceStart =
-          substringStartIndex + substring.indexOf(match[1], match.index);
-
-        queryData(
-          match[2],
-          index,
-          querySequenceStart,
-          querySequenceStart + match[1].length,
-          plainTextValue,
+          syncResult,
         );
       }
-    });
-  };
+    },
+    [dataSources, ignoreAccents, updateSuggestions],
+  );
 
-  const handleBlur: FocusEventHandler<MentionsInputElement<Multiline>> = (
-    event,
-  ) => {
-    const clickedSuggestion = suggestionsMouseDownRef.current;
-    suggestionsMouseDownRef.current = false;
+  const updateMentionsQueries = useCallback(
+    (plainTextValue: string, plainTextIndex: number | null) => {
+      // Invalidate previous queries. Async results for previous queries will be neglected.
+      queryIdRef.current++;
+      suggestionsRef.current = {};
 
-    // only reset selection if the mousedown happened on an element
-    // other than the suggestions overlay
-    if (!clickedSuggestion) {
-      setSelectionStart(null);
-      setSelectionEnd(null);
-    }
+      setSuggestions({});
 
-    setTimeout(() => {
-      updateHighlighterScroll();
-    });
-
-    onBlur?.(event, clickedSuggestion);
-  };
-
-  const handleChange: ChangeEventHandler<MentionsInputElement<Multiline>> = (
-    event,
-  ) => {
-    isComposingRef.current = false;
-
-    let newPlainTextValue = event.target.value;
-
-    let selectionStartBefore = selectionStart;
-    if (selectionStartBefore == null) {
-      selectionStartBefore = event.target.selectionStart;
-    }
-
-    let selectionEndBefore = selectionEnd;
-    if (selectionEndBefore == null) {
-      selectionEndBefore = event.target.selectionEnd;
-    }
-
-    // Derive the new value to set by applying the local change in the textarea's plain text
-    const newValue = applyChangeToValue(
-      value,
-      newPlainTextValue,
-      selectionStartBefore,
-      selectionEndBefore,
-      event.target.selectionEnd ?? 0,
-      dataSources,
-    );
-
-    // In case a mention is deleted, also adjust the new plain text value
-    newPlainTextValue = getPlainText(newValue, dataSources);
-
-    // Save current selection after change to be able to restore caret position after rerendering
-    let selectionStartAfter = event.target.selectionStart;
-    let selectionEndAfter = event.target.selectionEnd;
-
-    let setSelectionAfterMentionChangeAfter = false;
-
-    // Adjust selection range in case a mention will be deleted by the characters outside of the
-    // selection range that are automatically deleted
-    const startOfMention = findStartOfMentionInPlainText(
-      value,
-      dataSources,
-      selectionStartAfter ?? 0,
-    );
-
-    if (
-      startOfMention !== undefined &&
-      selectionEndAfter !== null &&
-      selectionEndAfter > startOfMention
-    ) {
-      // only if a deletion has taken place
-      const { data } = event.nativeEvent as InputEvent;
-      selectionStartAfter = startOfMention + (data?.length ?? 0);
-      selectionEndAfter = selectionStart;
-
-      setSelectionAfterMentionChangeAfter = true;
-    }
-
-    setSelectionStart(selectionStartAfter);
-    setSelectionEnd(selectionEndAfter);
-
-    setSetSelectionAfterMentionChange(setSelectionAfterMentionChangeAfter);
-
-    const mentions = getMentions(newValue, dataSources);
-
-    const { isComposing } = event.nativeEvent as InputEvent;
-    if (isComposing && selectionStartAfter === selectionEndAfter) {
-      updateMentionsQueries(inputRef.current?.value ?? '', selectionStartAfter);
-    }
-
-    onChange?.(newValue, newPlainTextValue, mentions);
-  };
-
-  const handleSelect: ReactEventHandler<MentionsInputElement<Multiline>> = (
-    event,
-  ) => {
-    const target = event.target as HTMLInputElement;
-    setSelectionStart(target.selectionStart);
-    setSelectionEnd(target.selectionEnd);
-
-    // do nothing while a IME composition session is active
-    if (isComposingRef.current) {
-      return;
-    }
-
-    // refresh suggestions queries
-    if (target.selectionStart === target.selectionEnd) {
-      updateMentionsQueries(
-        inputRef.current?.value ?? '',
-        target.selectionStart,
+      const positionInValue = mapPlainTextIndex(
+        value,
+        dataSources,
+        plainTextIndex,
+        'NULL',
       );
-    } else {
-      clearSuggestions();
-    }
 
-    // sync highlighters scroll position
-    updateHighlighterScroll();
+      // If caret is inside of mention, do not query
+      if (positionInValue === null) {
+        return;
+      }
 
-    onSelect?.(event);
-  };
+      // Extract substring in between the end of the previous mention and the caret
+      const substringStartIndex = getEndOfLastMention(
+        value.substring(0, positionInValue),
+        dataSources,
+      );
 
-  const shiftFocus = (delta: number) => {
-    const suggestionsCount = countSuggestions(suggestions);
+      const substring = plainTextValue.substring(
+        substringStartIndex,
+        plainTextIndex ?? undefined,
+      );
 
-    setFocusIndex((suggestionsCount + focusIndex + delta) % suggestionsCount);
-    setScrollFocusedIntoView(true);
-  };
+      dataSources.forEach((dataSource, index) => {
+        const regex = makeTriggerRegex(
+          dataSource.trigger,
+          dataSource.allowSpaceInQuery,
+        );
+
+        const match = substring.match(regex);
+        if (match) {
+          const querySequenceStart =
+            substringStartIndex + substring.indexOf(match[1], match.index);
+
+          queryData(
+            match[2],
+            index,
+            querySequenceStart,
+            querySequenceStart + match[1].length,
+            plainTextValue,
+          );
+        }
+      });
+    },
+    [value, dataSources, queryData],
+  );
+
+  const handleBlur = useCallback<
+    FocusEventHandler<MentionsInputElement<Multiline>>
+  >(
+    (event) => {
+      const clickedSuggestion = suggestionsMouseDownRef.current;
+      suggestionsMouseDownRef.current = false;
+
+      // only reset selection if the mousedown happened on an element
+      // other than the suggestions overlay
+      if (!clickedSuggestion) {
+        setSelectionStart(null);
+        setSelectionEnd(null);
+      }
+
+      setTimeout(() => {
+        updateHighlighterScroll();
+      });
+
+      onBlur?.(event, clickedSuggestion);
+    },
+    [onBlur],
+  );
+
+  const handleChange = useCallback<
+    ChangeEventHandler<MentionsInputElement<Multiline>>
+  >(
+    (event) => {
+      isComposingRef.current = false;
+
+      let newPlainTextValue = event.target.value;
+
+      let selectionStartBefore = selectionStart;
+      if (selectionStartBefore == null) {
+        selectionStartBefore = event.target.selectionStart;
+      }
+
+      let selectionEndBefore = selectionEnd;
+      if (selectionEndBefore == null) {
+        selectionEndBefore = event.target.selectionEnd;
+      }
+
+      // Derive the new value to set by applying the local change in the textarea's plain text
+      const newValue = applyChangeToValue(
+        value,
+        newPlainTextValue,
+        selectionStartBefore,
+        selectionEndBefore,
+        event.target.selectionEnd ?? 0,
+        dataSources,
+      );
+
+      // In case a mention is deleted, also adjust the new plain text value
+      newPlainTextValue = getPlainText(newValue, dataSources);
+
+      // Save current selection after change to be able to restore caret position after rerendering
+      let selectionStartAfter = event.target.selectionStart;
+      let selectionEndAfter = event.target.selectionEnd;
+
+      let setSelectionAfterMentionChangeAfter = false;
+
+      // Adjust selection range in case a mention will be deleted by the characters outside of the
+      // selection range that are automatically deleted
+      const startOfMention = findStartOfMentionInPlainText(
+        value,
+        dataSources,
+        selectionStartAfter ?? 0,
+      );
+
+      if (
+        startOfMention !== undefined &&
+        selectionEndAfter !== null &&
+        selectionEndAfter > startOfMention
+      ) {
+        // only if a deletion has taken place
+        const { data } = event.nativeEvent as InputEvent;
+        selectionStartAfter = startOfMention + (data?.length ?? 0);
+        selectionEndAfter = selectionStart;
+
+        setSelectionAfterMentionChangeAfter = true;
+      }
+
+      setSelectionStart(selectionStartAfter);
+      setSelectionEnd(selectionEndAfter);
+
+      setSetSelectionAfterMentionChange(setSelectionAfterMentionChangeAfter);
+
+      const mentions = getMentions(newValue, dataSources);
+
+      const { isComposing } = event.nativeEvent as InputEvent;
+      if (isComposing && selectionStartAfter === selectionEndAfter) {
+        updateMentionsQueries(
+          inputRef.current?.value ?? '',
+          selectionStartAfter,
+        );
+      }
+
+      onChange?.(newValue, newPlainTextValue, mentions);
+    },
+    [
+      value,
+      dataSources,
+      selectionStart,
+      selectionEnd,
+      onChange,
+      updateMentionsQueries,
+    ],
+  );
+
+  const handleSelect = useCallback<
+    ReactEventHandler<MentionsInputElement<Multiline>>
+  >(
+    (event) => {
+      const target = event.target as HTMLInputElement;
+      setSelectionStart(target.selectionStart);
+      setSelectionEnd(target.selectionEnd);
+
+      // do nothing while a IME composition session is active
+      if (isComposingRef.current) {
+        return;
+      }
+
+      // refresh suggestions queries
+      if (target.selectionStart === target.selectionEnd) {
+        updateMentionsQueries(
+          inputRef.current?.value ?? '',
+          target.selectionStart,
+        );
+      } else {
+        clearSuggestions();
+      }
+
+      // sync highlighters scroll position
+      updateHighlighterScroll();
+
+      onSelect?.(event);
+    },
+    [onSelect, updateMentionsQueries],
+  );
+
+  const shiftFocus = useCallback(
+    (delta: number) => {
+      const suggestionsCount = countSuggestions(suggestions);
+
+      setFocusIndex((suggestionsCount + focusIndex + delta) % suggestionsCount);
+      setScrollFocusedIntoView(true);
+    },
+    [focusIndex, suggestions],
+  );
 
   const clearSuggestions = () => {
     // Invalidate previous queries. Async results for previous queries will be neglected.
@@ -559,72 +614,75 @@ const MentionsInputImpl = <
     setSuggestions({});
   };
 
-  const addMention = (
-    { id, display }: SuggestionData,
-    {
-      dataSourceIndex,
-      querySequenceStart,
-      querySequenceEnd,
-      plainTextValue,
-    }: SuggestionsQueryInfo,
-  ) => {
-    const { markup, appendSpaceOnAdd, onAdd, displayTransform } =
-      dataSources[dataSourceIndex];
+  const addMention = useCallback(
+    (
+      { id, display }: SuggestionData,
+      {
+        dataSourceIndex,
+        querySequenceStart,
+        querySequenceEnd,
+        plainTextValue,
+      }: SuggestionsQueryInfo,
+    ) => {
+      const { markup, appendSpaceOnAdd, onAdd, displayTransform } =
+        dataSources[dataSourceIndex];
 
-    const start = mapPlainTextIndex(
-      value,
-      dataSources,
-      querySequenceStart,
-      'START',
-    );
-    if (typeof start !== 'number') {
-      return;
-    }
+      const start = mapPlainTextIndex(
+        value,
+        dataSources,
+        querySequenceStart,
+        'START',
+      );
+      if (typeof start !== 'number') {
+        return;
+      }
 
-    const end = start + querySequenceEnd - querySequenceStart;
+      const end = start + querySequenceEnd - querySequenceStart;
 
-    let insert = makeMentionsMarkup(
-      markup ?? DefaultMarkupTemplate,
-      id,
-      display,
-    );
+      let insert = makeMentionsMarkup(
+        markup ?? DefaultMarkupTemplate,
+        id,
+        display,
+      );
 
-    let displayValue = (displayTransform ?? DefaultDisplayTransform)(
-      id,
-      display,
-    );
+      let displayValue = (displayTransform ?? DefaultDisplayTransform)(
+        id,
+        display,
+      );
 
-    if (appendSpaceOnAdd) {
-      insert += ' ';
-      displayValue += ' ';
-    }
+      if (appendSpaceOnAdd) {
+        insert += ' ';
+        displayValue += ' ';
+      }
 
-    // Refocus input and set caret position to end of mention
-    inputRef.current?.focus();
+      // Refocus input and set caret position to end of mention
+      inputRef.current?.focus();
 
-    const newCaretPosition = querySequenceStart + displayValue.length;
-    setSelectionStart(newCaretPosition);
-    setSelectionEnd(newCaretPosition);
+      const newCaretPosition = querySequenceStart + displayValue.length;
+      setSelectionStart(newCaretPosition);
+      setSelectionEnd(newCaretPosition);
 
-    setSetSelectionAfterMentionChange(true);
+      setSetSelectionAfterMentionChange(true);
 
-    const newValue = spliceString(value, start, end, insert);
-    const mentions = getMentions(newValue, dataSources);
-    const newPlainTextValue = spliceString(
-      plainTextValue,
-      querySequenceStart,
-      querySequenceEnd,
-      displayValue,
-    );
+      const newValue = spliceString(value, start, end, insert);
+      const mentions = getMentions(newValue, dataSources);
+      const newPlainTextValue = spliceString(
+        plainTextValue,
+        querySequenceStart,
+        querySequenceEnd,
+        displayValue,
+      );
 
-    onChange?.(newValue, newPlainTextValue, mentions);
-    onAdd?.({ id, display }, start, end);
+      onChange?.(newValue, newPlainTextValue, mentions);
+      onAdd?.({ id, display }, start, end);
 
-    // Make sure the suggestions overlay is closed
-    clearSuggestions();
-  };
+      // Make sure the suggestions overlay is closed
+      clearSuggestions();
+    },
+    [value, dataSources, onChange],
+  );
 
-  const selectFocused = () => {
+  const selectFocused = useCallback(() => {
     const { result, queryInfo } = Object.values(suggestions).reduce<
       Array<{ result: SuggestionData; queryInfo: SuggestionsQueryInfo }>
     >(
@@ -638,45 +696,48 @@ const MentionsInputImpl = <
     addMention(result, queryInfo);
 
     setFocusIndex(0);
-  };
+  }, [focusIndex, suggestions, addMention]);
 
-  const handleKeyDown: KeyboardEventHandler<MentionsInputElement<Multiline>> = (
-    event,
-  ) => {
-    // do not intercept key events if the suggestions overlay is not shown
-    const suggestionsCount = countSuggestions(suggestions);
+  const handleKeyDown = useCallback<
+    KeyboardEventHandler<MentionsInputElement<Multiline>>
+  >(
+    (event) => {
+      // do not intercept key events if the suggestions overlay is not shown
+      const suggestionsCount = countSuggestions(suggestions);
 
-    if (suggestionsCount === 0) {
-      onKeyDown?.(event);
-      return;
-    }
-
-    switch (event.key) {
-      case Key.Escape: {
-        clearSuggestions();
-        break;
-      }
-      case Key.Down: {
-        shiftFocus(+1);
-        break;
-      }
-      case Key.Up: {
-        shiftFocus(-1);
-        break;
-      }
-      case Key.Tab:
-      case Key.Return: {
-        selectFocused();
-        break;
-      }
-      default: {
+      if (suggestionsCount === 0) {
+        onKeyDown?.(event);
         return;
       }
-    }
 
-    event.preventDefault();
-    event.stopPropagation();
-  };
+      switch (event.key) {
+        case Key.Escape: {
+          clearSuggestions();
+          break;
+        }
+        case Key.Down: {
+          shiftFocus(+1);
+          break;
+        }
+        case Key.Up: {
+          shiftFocus(-1);
+          break;
+        }
+        case Key.Tab:
+        case Key.Return: {
+          selectFocused();
+          break;
+        }
+        default: {
+          return;
+        }
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    [suggestions, onKeyDown, selectFocused, shiftFocus],
+  );
 
   const handleCompositionStart: CompositionEventHandler<
     MentionsInputElement<Multiline>
@@ -699,45 +760,48 @@ const MentionsInputImpl = <
     setScrollFocusedIntoView(false);
   };
 
-  const setInputRef: RefCallback<MentionsInputElement<Multiline>> = (node) => {
-    inputRef.current = node;
+  const setInputRef = useCallback<RefCallback<MentionsInputElement<Multiline>>>(
+    (node) => {
+      inputRef.current = node;
 
-    if (typeof ref === 'function') {
-      ref(node);
-    } else if (ref) {
-      ref.current = node;
-    }
-  };
-
-  const inputProps: InputProps<Multiline> = {
-    ...rest,
-    ref: setInputRef,
-    value: getPlainText(value, dataSources),
-    onCut: handleCut,
-    onCopy: handleCopy,
-    onPaste: handlePaste,
-    onBlur: handleBlur,
-    onScroll: updateHighlighterScroll,
-    onChange: handleChange,
-    onSelect: handleSelect,
-    onKeyDown: handleKeyDown,
-    onCompositionStart: handleCompositionStart,
-    onCompositionEnd: handleCompositionEnd,
-    style: {
-      ...rest.style,
-      width: '100%',
-      fontSize: 'inherit',
-      fontFamily: 'inherit',
-      fontWeight: 'inherit',
-      lineHeight: 'inherit',
-      letterSpacing: 'inherit',
-
-      background: 'none',
-      overscrollBehavior: 'none',
+      if (typeof ref === 'function') {
+        ref(node);
+      } else if (ref) {
+        ref.current = node;
+      }
     },
-  };
+    [ref],
+  );
 
-  const renderInput = () => {
+  const renderedInput = useMemo(() => {
+    const inputProps: InputProps<Multiline> = {
+      ...rest,
+      ref: setInputRef,
+      value: getPlainText(value, dataSources),
+      onCut: handleCut,
+      onCopy: handleCopy,
+      onPaste: handlePaste,
+      onBlur: handleBlur,
+      onScroll: updateHighlighterScroll,
+      onChange: handleChange,
+      onSelect: handleSelect,
+      onKeyDown: handleKeyDown,
+      onCompositionStart: handleCompositionStart,
+      onCompositionEnd: handleCompositionEnd,
+      style: {
+        ...rest.style,
+        width: '100%',
+        fontSize: 'inherit',
+        fontFamily: 'inherit',
+        fontWeight: 'inherit',
+        lineHeight: 'inherit',
+        letterSpacing: 'inherit',
+
+        background: 'none',
+        overscrollBehavior: 'none',
+      },
+    };
+
     if (renderInputProp) {
       return renderInputProp(inputProps);
     }
@@ -747,7 +811,21 @@ const MentionsInputImpl = <
     }
 
     return <input {...(inputProps as InputProps<false>)} />;
-  };
+  }, [
+    rest,
+    value,
+    multiline,
+    dataSources,
+    setInputRef,
+    handleCut,
+    handleCopy,
+    handlePaste,
+    handleBlur,
+    handleSelect,
+    handleChange,
+    handleKeyDown,
+    renderInputProp,
+  ]);
 
   return (
     <div style={{ position: 'relative' }}>
@@ -765,7 +843,7 @@ const MentionsInputImpl = <
         componentsProps={componentsProps}
       />
 
-      {renderInput()}
+      {renderedInput}
 
       {selectionStart !== null && (
         <SuggestionsOverlay
