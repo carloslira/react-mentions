@@ -1,8 +1,10 @@
 import type {
+  JSX,
   Ref,
   HTMLProps,
   ReactNode,
   FocusEvent,
+  RefCallback,
   ForwardedRef,
   CSSProperties,
   ClipboardEvent,
@@ -16,8 +18,6 @@ import type {
 
 import { useRef, useState, useEffect, forwardRef, useCallback } from 'react';
 
-import { usePopper } from 'react-popper';
-
 import { Key, DefaultMarkupTemplate } from '../constants';
 
 import type {
@@ -27,6 +27,8 @@ import type {
   SuggestionDataSource,
   SuggestionsQueryInfo,
 } from '../types';
+
+import { usePopper } from '../hooks/popper';
 
 import getMentions from '../utils/get-mentions';
 import spliceString from '../utils/splice-string';
@@ -697,7 +699,7 @@ const MentionsInputImpl = <
     setScrollFocusedIntoView(false);
   };
 
-  const setInputRef = (node: MentionsInputElement<Multiline>) => {
+  const setInputRef: RefCallback<MentionsInputElement<Multiline>> = (node) => {
     inputRef.current = node;
 
     if (typeof ref === 'function') {
@@ -741,10 +743,10 @@ const MentionsInputImpl = <
     }
 
     if (multiline) {
-      return <textarea {...(inputProps as HTMLProps<HTMLTextAreaElement>)} />;
+      return <textarea {...(inputProps as InputProps<true>)} />;
     }
 
-    return <input {...(inputProps as HTMLProps<HTMLInputElement>)} />;
+    return <input {...(inputProps as InputProps<false>)} />;
   };
 
   return (

@@ -20,5 +20,11 @@ storybook:
 build-storybook:
 	pnpm build-storybook;
 
-deploy:
+run-demo:
+	cd demo && pnpm run dev;
+
+build-demo:
+	cd demo && pnpm build;
+
+deploy-demo:
 	pnpm run deploy;
